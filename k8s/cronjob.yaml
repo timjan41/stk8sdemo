@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: stock-closing-price-sync
+  namespace: safe-schooling
+spec:
+  schedule: "0 18 * * *"
+  timeZone: "Asia/Taipei"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: stock-closing-price-sync
+              image: ghcr.io/your-org/stock-closing-price-sync:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: ConnectionStrings__SafeSchooling
+                  valueFrom:
+                    secretKeyRef:
+                      name: stock-closing-price-secret
+                      key: connection-string
+                - name: Twse__StockDayAllEndpoint
+                  value: "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+                - name: SyncOptions__CreateBy
+                  value: "k8s-cronjob"
+                - name: SyncOptions__CreateIp
+                  value: "127.0.0.1"
+                - name: SyncOptions__UpdateBy
+                  value: "k8s-cronjob"
+                - name: SyncOptions__UpdateIp
+                  value: "127.0.0.1"
